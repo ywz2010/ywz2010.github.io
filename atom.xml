@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://wenzhao.in/"/>
-  <updated>2017-01-19T13:47:04.000Z</updated>
+  <updated>2017-02-23T12:57:48.000Z</updated>
   <id>http://wenzhao.in/</id>
   
   <author>
@@ -14,6 +14,119 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Qunar React Native 大规模应用实践</title>
+    <link href="http://wenzhao.in/qrn-practice/"/>
+    <id>http://wenzhao.in/qrn-practice/</id>
+    <published>2017-02-22T12:15:00.000Z</published>
+    <updated>2017-02-23T12:57:48.000Z</updated>
+    
+    <content type="html">&lt;p&gt;【导读】Qunar React Native（下文简称 QRN）是去哪儿网（Qunar）基于 React Native（下文简称 RN）定制的一套框架，让 RN 用起来更方便快捷，2016 年 3 月上线后已在公司内部大规模应用。透过 QRN 的大规模实践我们可以看到如何更好地去使用 RN。&lt;br&gt;&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;本文首次发表在《程序员》杂志 2017 年 02 月期，如需转载，请与《程序员》联系&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;前言&quot;&gt;&lt;a href=&quot;#前言&quot; class=&quot;headerlink&quot; title=&quot;前言&quot;&gt;&lt;/a&gt;前言&lt;/h2&gt;&lt;p&gt;移动 App 跨平台开发技术因为可以低成本、高效率地完成 App 开发，一直以来都是移动开发的热点。目前常见的跨平台开发技术包括 React Native、Weex 和基于 HTML5 的 Hybrid 框架。Qunar 基于 React Native 定制了一套跨平台移动开发框架——Qunar React Native（QRN），QRN 与已有两年历史的 HY（基于 H5 的 Hybrid 方案）一同构成了当前 Qunar 的跨平台开发框架，这两个框架都是由 Qunar 移动架构组 YMFE 推出。&lt;/p&gt;
+&lt;p&gt;QRN 解决了使用 RN 中的诸多问题，实现了更少的平台差异、更高的开发效率、更好的用户体验，也非常适合像 Qunar 内部这种多个业务隔离的开发体系。结合成熟的离线资源包框架，QRN 页面可以通过热发快速地完成线上 Bug 的修复甚至发布新页面。目前 Qunar 内部已经有大量的业务上线基于 QRN 的页面，这其中也包括了许多核心的业务流程和日均千万 PV 的页面。&lt;/p&gt;
+&lt;h2 id=&quot;起源&quot;&gt;&lt;a href=&quot;#起源&quot; class=&quot;headerlink&quot; title=&quot;起源&quot;&gt;&lt;/a&gt;起源&lt;/h2&gt;&lt;p&gt;Qunar 从 2009 年率先开始无线业务至今，移动客户端一直承担着大量的业务需求。2014、2015 年正是 Qunar 在移动端发力、业务增长凶猛的关键时期，去哪儿旅行 App 的页面也与日俱增，2015 年底 iOS 端 App 大小一度超过 110MB。由于 App Store 的限制，超过 100MB 的 App 只能在 Wi-Fi 下才能下载，这就导致了用户期望定机票、酒店时不能使用 3G/4G 网络随时下载去哪儿旅行客户端，因此当时一个迫切的需求就是减少 App 的大小。&lt;/p&gt;
+&lt;p&gt;缩减 App 包大小的常见思路是去除冗余的业务、优化图片资源等，但是这样依然很难将 App 的大小减少到 100MB 以下。而从根本上减少 App 大小就需要减少 Native 的页面，删减业务显然不是一个可行的方案，这就要求我们将页面做成可以动态化配置。&lt;/p&gt;
+&lt;p&gt;在 QRN 之前，Qunar 内部一直存在由我们团队推出的一套可以支持动态化配置的跨平台 App 开发框架——HY &lt;a href=&quot;http://ued.qunar.com/hy2/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;(点击查看更多详情)&lt;/a&gt;。HY 是基于 HTML5 的 Hybrid 开发框架，在 Qunar App 中已经有大量的业务使用该方案开发。但是 HTML5 的解决方案存在体验和性能两方面的问题，表现为基于 HY 开发的页面很难达到一个原生的用户体验，在低端 Android 机上体验差，这在一些复杂的动画场景中尤为明显。这些问题其实是 HTML5 方案的基因所决定，因此为了减少 App 的大小我们迫切需要一个新的支持动态化配置的跨平台 App 开发框架。&lt;/p&gt;
+&lt;p&gt;经过一系列的调研和讨论后，我们决定尝试使用 Facebook 开源的 React Native 作为新的跨平台移动开发框架，这是因为 RN 具有以下特性：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;支持动态化：RN 的页面逻辑使用 JavaScript（下文简称 JS）来控制，因此我们可以做到动态发布。&lt;/li&gt;
+&lt;li&gt;跨平台性：RN 本身是支持 iOS 和 Android 两个平台的开发。同时由于其页面开发方式是完全 Web 化的 JS 和 React，这就让 RN 的 Web 端实现成为可能（React Web 就是 QRN 的 Web 端实现），因此 RN 完全可以做到一套代码三端运行。&lt;/li&gt;
+&lt;li&gt;Native 的用户体验：RN 页面使用的是 Native 的原生组件，具有更强的可定制性，完全可以做到一个 Native 的用户体验。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;为了验证 RN 的技术细节，2015 年 12 月我们在 Qunar 的一个热门独立客户端“去哪儿睡”上线了基于 RN 开发的酒店用户点评页，其中包括相册的选取界面都是用 RN 来完成（如图 1 所示），该项目同时上线了 iOS 和 Android，页面的整体效果超过预期，这也让我们坚信 React Native 是完全可以作为一个新的跨平台开发框架。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/588967520324d.jpg&quot; width=&quot;500&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 1 “去哪儿睡”客户端酒店用户点评页面&lt;/center&gt;
+
+&lt;p&gt;在上线去哪儿睡的酒店点评页的过程中，我们也发现了很多 RN 存在的问题，比如部分 RN 组件因为使用的是 Native 的组件所以还存在平台差异、打开 RN 页面时需要一个较长的加载时间等。为了解决这些问题，我们花了 3 个月的时间基于 RN 定制了一套更快、更好、更统一的跨平台开发框架 QRN。&lt;/p&gt;
+&lt;h2 id=&quot;大规模应用现状&quot;&gt;&lt;a href=&quot;#大规模应用现状&quot; class=&quot;headerlink&quot; title=&quot;大规模应用现状&quot;&gt;&lt;/a&gt;大规模应用现状&lt;/h2&gt;&lt;p&gt;2016 年 3 月我们上线了第一个基于 QRN 的页面：去哪儿旅行 iOS 客户端的酒店首页。在之后的几个月中我们上线了大量基于 QRN 开发的项目，到 2016 年 10 月在去哪儿旅行客户端中已有超过 20 个 QRN 项目，其中有 14 个是同时上线了 iOS 和 Android。平均每个项目有 8 个以上的页面，在此之中，酒店一个 QRN 项目就有多达 20 个页面。&lt;/p&gt;
+&lt;p&gt;在去哪儿旅行客户端中首页的酒店（仅 iOS）、客栈名宿、金融理财的一级入口均为 QRN 页面。不仅如此，对于核心业务流程，例如订单列表页、订单详情页、用户登录页面也都替换为了 QRN 页面（见图 2），这其中包含了很多日均千万 PV 的页面。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/5889676f078e1.jpg&quot; width=&quot;400&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 2  QRN 页面替换&lt;/center&gt;
+
+&lt;h2 id=&quot;QRN-的架构特点&quot;&gt;&lt;a href=&quot;#QRN-的架构特点&quot; class=&quot;headerlink&quot; title=&quot;QRN 的架构特点&quot;&gt;&lt;/a&gt;QRN 的架构特点&lt;/h2&gt;&lt;p&gt;QRN 在去哪儿内部大规模的应用与其架构密不可分，在设计 QRN 框架时我们主要考虑了下面三点：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;业务使用的便利性：部分 RN 组件，比如 Switch、Picker 等并没有做到 iOS、Android 两端的 UI 风格统一，而在 Qunar 移动开发中要求两个平台具有一致的 UI 风格，因此为了保证业务使用的便利性，我们需要进一步抹平平台差异。&lt;/li&gt;
+&lt;li&gt;与现有页面的共存：在 Qunar 移动端中不仅仅存在 Native 页面，还存在着大量 HY 页面，怎么和这些现有页面进行共存也是我们设计 QRN 所需考虑的问题。&lt;/li&gt;
+&lt;li&gt;支持热发更新：RN 是一个支持动态化的移动 App 开发框架，因此我们需要考虑设计一个完善的热发更新机制来实现 QRN 页面的 bugfix 甚至提供上线新页面。&lt;br&gt;那么，我们是怎么做的呢？&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&quot;进一步抹平平台差异&quot;&gt;&lt;a href=&quot;#进一步抹平平台差异&quot; class=&quot;headerlink&quot; title=&quot;进一步抹平平台差异&quot;&gt;&lt;/a&gt;进一步抹平平台差异&lt;/h3&gt;&lt;p&gt;RN 的 Switch 使用的是 iOS 和 Android 各自平台的 UI 风格（如图 3 所示），这在使用时极为不便。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/58896792d356c.jpg&quot; width=&quot;500&quot;&gt;&lt;br&gt;&lt;/center&gt;&lt;br&gt;&lt;center&gt;图 3  React Native 的 Switch 两端 UI 风格对比&lt;/center&gt;
+
+&lt;p&gt;在 QRN 中我们提供了 iOS 和 Android 统一的 UI 风格，方便业务使用（如图 4 所示），对于其他不统一的基础 UI 组件，我们都在 Android 上基于 iOS 风格重新实现，保证了两个平台的 UI 统一。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/588967af5ee09.jpg&quot; width=&quot;500&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 4  QRN 中统一的 Switch UI 风格&lt;/center&gt;
+
+&lt;p&gt;同时，我们也使用 JS 实现了一些常见的外部 UI 组件，例如图 5 中支持侧滑操作的 ListView 和日历等组件。使用 JS 实现的组件具有很强的跨平台性，如果这些 UI 组件出现 Bug，我们也可以通过热发更新快速修复，其成本远低于修复一个 Native 的组件（从&lt;a href=&quot;http://ued.qunar.com/qrn/extraUI.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;http://ued.qunar.com/qrn/extraUI.html&lt;/a&gt; 可查看更多的 QRN 外部 JS UI 组件）。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/588967cd4a88c.jpg&quot; width=&quot;500&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 5  支持侧滑操作的 ListView 和日历组件演示&lt;/center&gt;
+
+&lt;p&gt;除了 UI 上的不同，iOS 和 Android 平台的差异还体现在其他地方，其中一个不同点就是 App 状态栏。在 iOS 上从 iOS 7 开始就支持沉浸式状态栏，且高度均为 20，但是 Android 上由于系统版本和机型的不同，是否支持沉浸式状态栏、状态栏高度这些属性在写 RN 页面时都需要关注，但 RN 并没有提供一个统一的 API 去获取。对于这些差异，在 QRN 中我们都提供了统一的 API 方便业务在写 QRN 页面时可以直接获取，从而无需区分平台。&lt;/p&gt;
+&lt;p&gt;通过这些方式我们真正做到了跨平台性，去哪儿旅行客户端首页的客栈名宿页面同时上线了 iOS 和 Android，其 JavaScript 代码只有 6 处 Platform 进行平台的判断，而其源于需要和 iOS、Android 现有的 Native 页面进行交互，本身两个平台的 Native 页面进行数据传递的 Scheme 会存在差异，所以需要进行平台的判断。可以说使用 QRN 进行页面的开发完全可以做到不需要平台代码的判断，一套代码同时运行在两个平台上。&lt;/p&gt;
+&lt;h3 id=&quot;JS-Bundle-的拆分&quot;&gt;&lt;a href=&quot;#JS-Bundle-的拆分&quot; class=&quot;headerlink&quot; title=&quot;JS Bundle 的拆分&quot;&gt;&lt;/a&gt;JS Bundle 的拆分&lt;/h3&gt;&lt;p&gt;RN 中最终 pack 出来的 JS Bundle 文件不仅仅包含了业务的页面 JS 逻辑，还包含了 RN 组件和其框架的 JS。在 QRN 中，我们把 JS Bundle 文件拆分成了 QRN 的框架 JS 和业务 JS（如图 6 所示），在拆分后所有的业务共用一份 QRN 框架 JS，这样每个业务只需提供自己的业务 JS，通过它们的拆分，有效地减少了 JSBundle 的大小，同时也方便了后续的预加载和缓存。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/588967ebc2554.jpg&quot; width=&quot;350&quot;&gt;&lt;br&gt;&lt;/center&gt;&lt;br&gt;&lt;center&gt;图 6  拆分 JS Bundle&lt;/center&gt;
+
+&lt;h3 id=&quot;QRN-的预加载和缓存&quot;&gt;&lt;a href=&quot;#QRN-的预加载和缓存&quot; class=&quot;headerlink&quot; title=&quot;QRN 的预加载和缓存&quot;&gt;&lt;/a&gt;QRN 的预加载和缓存&lt;/h3&gt;&lt;p&gt;RN 中创建 RCTRootView（RN 页面渲染的 View）之后会有一个白屏的时间等待 RN 环境的初始化和加载 JS Bundle 文件，这个时间会接近 1s。在 QRN 中，我们提供一个异步获取 RCTRootView 的方法，获取的 RCTRootView 已经完成了 RN 环境的初始化，并已加载完 QRN 的框架 JS 和业务 JS，这时可以直接开始渲染。&lt;/p&gt;
+&lt;p&gt;为了减少 QRN 中获取 View 的时间，我们进行了 RN 环境的预加载和缓存。所谓预加载就是提前初始化好一个已经加载 QRN 框架 JS 的 RN 环境，这样就只需要去加载业务 JS，可以缩短最少 200ms 的等待时间。缓存指的是我们会缓存一个业务已经加载好的 RN 环境，当下次进入这个业务时就可以直接开始页面的渲染。&lt;/p&gt;
+&lt;p&gt;在 QRN 中我们给每个业务提供了一个独立的 RN 环境，保证了业务的独立性，当一个业务的 JS 代码出现问题时并不会影响其他业务。这种 QRN 业务完全解耦的方式非常适合类似于 Qunar 这种业务隔离的情况。&lt;/p&gt;
+&lt;h3 id=&quot;成熟的离线资源包框架&quot;&gt;&lt;a href=&quot;#成熟的离线资源包框架&quot; class=&quot;headerlink&quot; title=&quot;成熟的离线资源包框架&quot;&gt;&lt;/a&gt;成熟的离线资源包框架&lt;/h3&gt;&lt;p&gt;在 QRN 中，业务 JS 是线上资源，为了减少用户下载时间，我们给 QRN 添加了离线资源包的支持，如果其中有对应网络请求的网络资源，那么请求会直接返回本地离线资源包中的文件，这个时间和读取本地文件一样，因此有效减少了网络请求业务 JS 的时间。同时对于业务使用的图片等资源，我们也会放在离线资源包中加快资源打开速度。离线资源包的使用不仅仅减少了下载业务 JS 的时间，而且让 QRN 页面可以在离线情况下打开，更像一个 Native 的页面。&lt;/p&gt;
+&lt;p&gt;目前所有的动态化移动开发框架都需要离线资源包的支持来减少资源加载时间，每个公司应该都会有自己的一套实现机制，QRN 使用的离线资源包已经在 HY 中应用多年，其基于 BSDiff 的差分更新机制和智能化的更新策略可以在保证节省用户流量的同时拥有极高的资源包更新率。一个 1.2MB 的资源包，其更新时仅仅需要下载不到 1KB 的补丁。该离线资源包框架适合加速移动开发中的各种网络资源请求，引入框架不需要对已有的网络请求代码做任何修改，整个资源包框架对于资源请求方是无感知的。&lt;/p&gt;
+&lt;h3 id=&quot;自定义-IconFont（图标字体）的支持&quot;&gt;&lt;a href=&quot;#自定义-IconFont（图标字体）的支持&quot; class=&quot;headerlink&quot; title=&quot;自定义 IconFont（图标字体）的支持&quot;&gt;&lt;/a&gt;自定义 IconFont（图标字体）的支持&lt;/h3&gt;&lt;p&gt;在 QRN 中我们添加了自定义 IconFont 的支持，可以使用 IconFont 来作为图标。业务只需要在 JS 代码中配置需要加载的 IconFont 就可以自动完成字体的添加，整个过程无需编写任何 Native 代码。与使用图片做图标相比，IconFont 作为矢量图更清晰、更轻量也更灵活。&lt;/p&gt;
+&lt;p&gt;图 7 所示的去哪儿旅行客栈名宿页面中的住宿类型图标就是基于 IconFont 实现，通过设置字体颜色、阴影等属性就可以控制图标的效果，如果使用图片的话就得为每个不同的大小和效果准备不同的文件。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/5889680d63d9f.jpg&quot; width=&quot;450&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 7  基于 IconFont 实现的住宿类型图标&lt;/center&gt;
+
+&lt;p&gt;目前我们团队已经开源了 &lt;a href=&quot;http://yicon.ymfe.tech/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;&lt;code&gt;YIcon&lt;/code&gt;&lt;/a&gt; ，一个集图标展示、上传、使用于一身的图标平台，如果你希望在前端、移动端项目上使用 &lt;code&gt;IconFont&lt;/code&gt; 来替换图片图标的话，欢迎使用我们提供的 IconFont 平台。&lt;/p&gt;
+&lt;h3 id=&quot;无埋点统计方案支持&quot;&gt;&lt;a href=&quot;#无埋点统计方案支持&quot; class=&quot;headerlink&quot; title=&quot;无埋点统计方案支持&quot;&gt;&lt;/a&gt;无埋点统计方案支持&lt;/h3&gt;&lt;p&gt;QRN 中增加了对 Qunar 无埋点统计方案 &lt;a href=&quot;http://qav.qunar.com/static/html/index.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;QAV&lt;/a&gt; 的支持，通过修改 RN 框架，我们做到了 JS 代码无需任何修改就可以统计用户的点击、跳转数据，结合 QAV 提供的用户细查、页面流量分析等多维度的用户分析渠道，让 App 开发者可以洞察用户的行为。而引入这套无埋点方案非常简单，只需将 RN 替换为 QRN 即可，不用对已有的 RN JS 代码做任何的修改。&lt;/p&gt;
+&lt;h3 id=&quot;全新的-ScrollView-和-ListView&quot;&gt;&lt;a href=&quot;#全新的-ScrollView-和-ListView&quot; class=&quot;headerlink&quot; title=&quot;全新的 ScrollView 和 ListView&quot;&gt;&lt;/a&gt;全新的 ScrollView 和 ListView&lt;/h3&gt;&lt;p&gt;ScrollView 和 ListView 是业务最常使用的两个组件，但是 RN 的 ScrollView 和 ListView 的性能和内存占用达不到我们的期望。目前网上有很多开源的优化方案，在 QRN 中我们也设计了一套全新的 ScrollView 和 ListView，可以带来更高的灵活性和更小的内存占用。&lt;/p&gt;
+&lt;p&gt;QRN 的 ScrollView 与 RN ScrollView 最大的不同在于前者的滚动手势是由 JS 控制，而后者使用的是 Native 的 ScrollView，在 Native 处理了滚动手势后通知 JS ScrollView 滚动到哪个位置，详细对比可见图 8。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/588968307ebfb.jpg&quot; width=&quot;500&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 8  QRN ScrollView 与 RN ScrollView 处理对比&lt;/center&gt;
+
+&lt;p&gt;因为 RN 中除了 ScrollView 和 ListView 以外，其他组件的用户手势均由 JS 处理，如果使用 QRN ScrollView 则可以保证 RN 页面所有的组件都使用了统一的手势处理机制，从而带来极大的灵活性，让 ScrollView 嵌套 ScrollView 的效果更加自然。&lt;/p&gt;
+&lt;p&gt;QRN 的 ListView 基于 React 的虚拟 DOM Diff 算法实现了真正意义上的 Cell 复用，图 9 显示了在 iPhone 7 上同样 2000 行数据滑动到底时的内存占用情况，可以看到 QRN 的 ListView 内存占用一直维持在 70MB 以内，而 RN 的 ListView 在滑动过程中内存最高达 1.3GB，最终稳定的内存占用也接近 600MB，显然对于大部分的机型，RN ListView 这样的内存占用会导致 App 闪退。&lt;/p&gt;
+&lt;center&gt;&lt;br&gt;    &lt;img src=&quot;http://ipad-cms.csdn.net/cms/attachment/201702/588968f2b93a3.jpg&quot; width=&quot;500&quot;&gt;&lt;br&gt;&lt;/center&gt;
+
+&lt;center&gt;图 9  内存占用峰值对比&lt;/center&gt;
+
+&lt;p&gt;QRN 的 ListView 与 RN ListView 用法完全一致，一个现有的 RN 项目只需要将 &lt;code&gt;import{ListView}from&amp;#39;react-native&amp;#39;&lt;/code&gt;修改为 &lt;code&gt;import{ListView}fromqunar-react-native&lt;/code&gt; 即可使用 QRN 的 ListView。&lt;/p&gt;
+&lt;p&gt;由于 QRN 的 ScrollView 会在 JS 中处理滚动手势，QRN 的 ListView 也会在 JS 中处理 cell 的复用，因此一旦 JS 线程负担过重就会导致页面的卡顿，这也是目前 QRN ScrollView 和 ListView 存在的不足，好在其中大部分都可以通过优化 JS 代码解决。&lt;/p&gt;
+&lt;h2 id=&quot;遇到的问题&quot;&gt;&lt;a href=&quot;#遇到的问题&quot; class=&quot;headerlink&quot; title=&quot;遇到的问题&quot;&gt;&lt;/a&gt;遇到的问题&lt;/h2&gt;&lt;p&gt;在大规模应用 QRN 的过程中，我们也遇到了很多问题，主要表现为：&lt;/p&gt;
+&lt;h3 id=&quot;node-modules-依赖问题&quot;&gt;&lt;a href=&quot;#node-modules-依赖问题&quot; class=&quot;headerlink&quot; title=&quot;node_modules 依赖问题&quot;&gt;&lt;/a&gt;node_modules 依赖问题&lt;/h3&gt;&lt;p&gt;npm 并没有很好地解决模块依赖冲突的问题（关于 npm 处理模块依赖冲突的方式可阅读：&lt;a href=&quot;http://www.alloyteam.com/2016/03/master-npm/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;http://www.alloyteam.com/2016/03/master-npm/&lt;/a&gt;）。但是在 RN 中这个情况会变得更加复杂，RN pack 包的逻辑会默认使用第一级目录下的模块，也就是说如果一个模块 A，在第一级目录下安装了版本 A@1，但是另外一个模块 B 依赖了模块 A@2，那么在模块 B 的 &lt;code&gt;node_modules&lt;/code&gt; 下会安装模块 A@2，但是 RN pack 出来的 JS Bundle 中只会存在 A@1。&lt;/p&gt;
+&lt;p&gt;因为 QRN 中进行了框架 JS 和业务 JS 的拆分，而同一个模块只会在框架 JS 和业务 JS 中存在一份，这就导致了我们需要保证不同的业务 pack JS Bundle 时一级目录下 QRN 依赖的模块都是指定版本。目前，我们自定义了一套&lt;a href=&quot;http://ued.qunar.com/qrn/qrn_tool.html&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;工具&lt;/a&gt;来解决这个问题。&lt;/p&gt;
+&lt;h3 id=&quot;React-Native-开发&quot;&gt;&lt;a href=&quot;#React-Native-开发&quot; class=&quot;headerlink&quot; title=&quot;React Native 开发&quot;&gt;&lt;/a&gt;React Native 开发&lt;/h3&gt;&lt;p&gt;RN 的开发使用了大量的前端工具，如 JSX、Redux 等。因此，一个前端开发者来开发 RN 时会更容易上手；但是 RN 的开发又需要了解 Native 的布局，这点 Native 开发者会更加熟悉。&lt;/p&gt;
+&lt;p&gt;目前在 Qunar 内部，同时有前端团队和 Native 开发团队在进行 QRN 页面的开发。在我们看来，RN 的开发是一个全新的开发方式，其既不是传统的前端开发，也不能简单地当作 iOS、Android 开发。相比于前端几十年的开发历史，RN 从公布到现在还不足 2 年，关于 RN 还缺乏足够多的优化技巧与资料，匮乏的高级 RN 开发者其实也阻碍了 RN 的推广与应用，好在这个问题相信会随着越来越多的人学习 RN 开发得到改善。&lt;/p&gt;
+&lt;h3 id=&quot;一直变化的官方版本&quot;&gt;&lt;a href=&quot;#一直变化的官方版本&quot; class=&quot;headerlink&quot; title=&quot;一直变化的官方版本&quot;&gt;&lt;/a&gt;一直变化的官方版本&lt;/h3&gt;&lt;p&gt;RN 目前还处于变化中，每两周会有一个新版本，从 2017 年开始，RN 的发布周期变为每个月一次，逐渐趋于稳定。版本的频繁更新特别是布局 CSS Layout 的改动，会导致现有的 Flex 布局出现问题。想象一下，一个 Web 页面在一年间要依次兼容 IE6 至 IE10，这显然是需要开发者花费大量精力来处理版本升级所带来的兼容问题。&lt;/p&gt;
+&lt;p&gt;QRN 在 2016 年 10 月做了一次官方版本的同步，将基于的 RN 版本从 0.20.0 升级到了 0.33.0，升级之后需要业务进行所有页面的回归，主要是要业务解决 Flex 布局的变化可能导致页面显示错误的问题。升级的主要目的是为了解决 0.20.0 中 RN 存在的 Bug，这个过程中发现升级 Base 的 RN 版本会给业务造成负担，后续 QRN 会评估同步 RN 新版本的收益和风险来决定是否升级 Base 的 RN 版本。&lt;/p&gt;
+&lt;h2 id=&quot;写在最后&quot;&gt;&lt;a href=&quot;#写在最后&quot; class=&quot;headerlink&quot; title=&quot;写在最后&quot;&gt;&lt;/a&gt;写在最后&lt;/h2&gt;&lt;p&gt;Qunar 一直以来就是以技术驱动的公司，敢于尝试各种新的技术，在 RN 开源后我们团队就一直在探讨 App 中引入 RN 的可行性。目前 QRN 已经在 Qunar 内部大规模应用，这也验证了我们对 RN 的看法：RN 完全可以胜任核心业务页面，虽然和 Native 的页面还存在差距，但是由于其很强的可定制性，因此潜力很大。随着越来越多更熟练的 RN 开发者出现，RN 必将在业界成为一个非常核心的移动跨平台开发方案。后续我们将把 QRN 做成一个 SDK，开放给大家使用，让 RN 的开发变得更加快捷、简单，未来也在计划开源 QRN。&lt;/p&gt;
+&lt;hr&gt;
+</content>
+    
+    <summary type="html">
+    
+      Qunar React Native 大规模应用实践现状
+    
+    </summary>
+    
+      <category term="iOS" scheme="http://wenzhao.in/categories/iOS/"/>
+    
+    
+      <category term="iOS" scheme="http://wenzhao.in/tags/iOS/"/>
+    
+      <category term="ReactNative" scheme="http://wenzhao.in/tags/ReactNative/"/>
+    
+      <category term="QunarReactNative" scheme="http://wenzhao.in/tags/QunarReactNative/"/>
+    
+  </entry>
   
   <entry>
     <title>Qunar React Native ( QRN ) 首屏加载速度优化</title>
